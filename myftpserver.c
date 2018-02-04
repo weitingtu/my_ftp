@@ -12,68 +12,17 @@
 
 #define PORT 12345
 
-int recvMsg( int sd, char* buff, int len )
-{
-    int recvLen = 0;
-    while ( recvLen != len )
-    {
-        int rLen = recv( sd, buff + recvLen, len - recvLen, 0 );
-        if ( rLen < 0 )
-        {
-            fprintf( stderr, "error recving msg\n" );
-            return 1;
-        }
-        if ( rLen == 0 )
-        {
-            printf( "stop recving msg\n" );
-            return 2;
-        }
-        recvLen += rLen;
-    }
-    return 0;
-}
-
-int sendMsg( int sd, char* buff, int len )
-{
-    int recvLen = 0;
-    while ( recvLen != len )
-    {
-        int rLen = send( sd, buff + recvLen, len - recvLen, 0 );
-        if ( rLen <= 0 )
-        {
-            fprintf( stderr, "error sending msg, error code: %d\n", rLen );
-            return 1;
-        }
-        recvLen += rLen;
-    }
-    return 0;
-}
-
-int sendCmdMsg( int sd, char* buff, int len )
-{
-    int* msgLen = ( int* )calloc( sizeof( int ), 1 );
-    *msgLen = len;
-
-    if ( sendMsg( sd, ( char* )msgLen, sizeof( int ) ) == 1 )
-    {
-        fprintf( stderr, "send error, exit\n" );
-        return 1;
-    }
-    if ( sendMsg( sd, buff, *msgLen ) == 1 )
-    {
-        fprintf( stderr, "send error, exit\n" );
-        return 1;
-    }
-    free( msgLen );
-    return 0;
-}
-
-int _getRequest( int sd, char* buff )
+char* _getFileName( char* buff )
 {
     char* file_name = get_data_dir_path();
     file_name = realloc( file_name, strlen( file_name ) + strlen( buff + sizeof( Message ) ) );
     strcat( file_name, buff + sizeof( Message ) );
 
+    return file_name;
+}
+
+int _getRequest( int sd, char* file_name )
+{
     int file_exist = access( file_name, F_OK | R_OK );
 
     if ( file_exist != 0 )
@@ -100,7 +49,6 @@ int _getRequest( int sd, char* buff )
 
     if ( file_exist != 0 )
     {
-        free( file_name );
         return 0;
     }
 
@@ -114,7 +62,35 @@ int _getRequest( int sd, char* buff )
         free( cmd_buff );
     }
 
-    free( file_name );
+    return 0;
+}
+
+int _putRequest( int sd, char* file_name )
+{
+    {
+        Message reply_cmd;
+        char* cmd_buff = createPutReplyCmd( &reply_cmd );
+        if ( sendCmdMsg( sd, cmd_buff, reply_cmd.length ) == 1 )
+        {
+            exit( 1 );
+        }
+        free( cmd_buff );
+    }
+
+    char* buff = NULL;
+    int len = 0;
+    Message cmd;
+    recvCmdMsg( sd, &buff, &len, &cmd );
+    FILE* fp = fopen( file_name, "w" );
+    if ( NULL == fp )
+    {
+        fprintf( stderr, "failed to open %f\n", file_name );
+        free( buff );
+        return 1;
+    }
+    fwrite( buff + sizeof( Message ), sizeof( char ), cmd.length - sizeof( Message ), fp );
+    fclose( fp );
+    free( buff );
     return 0;
 }
 
@@ -176,13 +152,20 @@ void* pthread_prog( void* sDescriptor )
                 break;
             case GET_REQUEST:
             {
-                _getRequest( sd, buff );
+                char* file_name = _getFileName( buff );
+                _getRequest( sd, file_name );
+                free( file_name );
             }
             break;
             case GET_REPLY_EXIST:
                 break;
             case PUT_REQUEST:
-                break;
+            {
+                char* file_name = _getFileName( buff );
+                _putRequest( sd, file_name );
+                free( file_name );
+            }
+            break;
             case PUT_REPLY:
                 break;
             case FILE_DATA:

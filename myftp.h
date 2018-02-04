@@ -33,6 +33,11 @@ struct message_s
 
 typedef struct message_s Message;
 
+int recvMsg( int sd, char* buff, int len );
+int sendMsg( int sd, char* buff, int len );
+int sendCmdMsg( int sd, char* buff, int len );
+int recvCmdMsg( int sd, char** buff, int* len, Message* cmd );
+
 char* get_data_dir_path();
 
 void printCmd ( Message* cmd );
@@ -40,6 +45,8 @@ char* createListRequestCmd( Message* cmd );
 char* createListReplyCmd( Message* cmd );
 char* createGetRequestCmd( Message* cmd, char* file_name );
 char* createGetReplyCmd( Message* cmd, int file_exist );
+char* createPutRequestCmd( Message* cmd, char* file_name );
+char* createPutReplyCmd( Message* cmd );
 char* createFileDataCmd( Message* cmd, char* file_name );
 void processListReplyCmd( char* buff );
 int parseCmd ( char* buff, int len, Message* cmd );

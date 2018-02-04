@@ -1,6 +1,88 @@
 #include "myftp.h"
 #include <dirent.h>
 
+int recvMsg( int sd, char* buff, int len )
+{
+    int recvLen = 0;
+    while ( recvLen != len )
+    {
+        int rLen = recv( sd, buff + recvLen, len - recvLen, 0 );
+        if ( rLen < 0 )
+        {
+            fprintf( stderr, "error recving msg\n" );
+            return 1;
+        }
+        if ( rLen == 0 )
+        {
+            printf( "stop recving msg\n" );
+            return 2;
+        }
+        recvLen += rLen;
+    }
+    return 0;
+}
+
+int sendMsg( int sd, char* buff, int len )
+{
+    int recvLen = 0;
+    while ( recvLen != len )
+    {
+        int rLen = send( sd, buff + recvLen, len - recvLen, 0 );
+        if ( rLen <= 0 )
+        {
+            fprintf( stderr, "error sending msg\n" );
+            return 1;
+        }
+        recvLen += rLen;
+    }
+    return 0;
+}
+
+int sendCmdMsg( int sd, char* buff, int len )
+{
+    int* msg_len = ( int* )calloc( sizeof( int ), 1 );
+    *msg_len = len;
+
+    if ( sendMsg( sd, ( char* )msg_len, sizeof( int ) ) == 1 )
+    {
+        fprintf( stderr, "send error, exit\n" );
+        return 1;
+    }
+    if ( sendMsg( sd, buff, *msg_len ) == 1 )
+    {
+        fprintf( stderr, "send error, exit\n" );
+        return 1;
+    }
+    free( msg_len );
+    return 0;
+}
+
+int recvCmdMsg( int sd, char** buff, int* len, Message* cmd )
+{
+    int* msg_len = ( int* )calloc( sizeof( int ), 1 );
+    if ( recvMsg( sd, ( char* )msg_len, sizeof( int ) ) == 1 )
+    {
+        fprintf( stderr, "error receiving, exit!\n" );
+        return 1;
+    }
+    *buff = ( char* )calloc( sizeof( char ), *msg_len + 1 );
+    if ( recvMsg( sd, *buff, *msg_len ) == 1 )
+    {
+        fprintf( stderr, "error receiving, exit!\n" );
+        return 1;
+    }
+
+    int res = parseCmd( *buff, *msg_len, cmd );
+    free( msg_len );
+
+    if ( res != 0 )
+    {
+        printf( "recv'd msg: %s\n", buff );
+        return 1;
+    }
+    return 0;
+}
+
 char* get_data_dir_path()
 {
     char* path = getcwd( NULL, 0 );
@@ -100,6 +182,29 @@ char* createGetReplyCmd( Message* cmd, int file_exist )
 {
     strcpy( cmd->protocol, "myftp" );
     cmd->type = file_exist == 0 ? GET_REPLY_EXIST : GET_REPLY_NON_EXIST;
+    cmd->length = sizeof( Message );
+
+    char* buff = malloc( sizeof( char ) * cmd->length );
+    memcpy( buff, cmd, cmd->length );
+    return buff;
+}
+
+char* createPutRequestCmd( Message* cmd, char* file_name )
+{
+    strcpy( cmd->protocol, "myftp" );
+    cmd->type = PUT_REQUEST;
+    cmd->length = sizeof( Message ) + strlen( file_name );
+
+    char* buff = malloc( sizeof( char ) * cmd->length );
+    memcpy( buff, cmd, sizeof( Message ) );
+    memcpy( buff + sizeof( Message ), file_name, strlen( file_name ) );
+    return buff;
+}
+
+char* createPutReplyCmd( Message* cmd )
+{
+    strcpy( cmd->protocol, "myftp" );
+    cmd->type = PUT_REPLY;
     cmd->length = sizeof( Message );
 
     char* buff = malloc( sizeof( char ) * cmd->length );

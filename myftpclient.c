@@ -13,83 +13,6 @@
 #define IPADDR "127.0.0.1"
 #define PORT 12345
 
-int recvMsg( int sd, char* buff, int len )
-{
-    int recvLen = 0;
-    while ( recvLen != len )
-    {
-        int rLen = recv( sd, buff + recvLen, len - recvLen, 0 );
-        if ( rLen <= 0 )
-        {
-            fprintf( stderr, "error recving msg\n" );
-            return 1;
-        }
-        recvLen += rLen;
-    }
-    return 0;
-}
-
-int sendMsg( int sd, char* buff, int len )
-{
-    int recvLen = 0;
-    while ( recvLen != len )
-    {
-        int rLen = send( sd, buff + recvLen, len - recvLen, 0 );
-        if ( rLen <= 0 )
-        {
-            fprintf( stderr, "error sending msg\n" );
-            return 1;
-        }
-        recvLen += rLen;
-    }
-    return 0;
-}
-
-int sendCmdMsg( int sd, char* buff, int len )
-{
-    int* msg_len = ( int* )calloc( sizeof( int ), 1 );
-    *msg_len = len;
-
-    if ( sendMsg( sd, ( char* )msg_len, sizeof( int ) ) == 1 )
-    {
-        fprintf( stderr, "send error, exit\n" );
-        exit( 0 );
-    }
-    if ( sendMsg( sd, buff, *msg_len ) == 1 )
-    {
-        fprintf( stderr, "send error, exit\n" );
-        exit( 0 );
-    }
-    free( msg_len );
-    return 0;
-}
-
-int recvCmdMsg( int sd, char** buff, int* len, Message* cmd )
-{
-    int* msg_len = ( int* )calloc( sizeof( int ), 1 );
-    if ( recvMsg( sd, ( char* )msg_len, sizeof( int ) ) == 1 )
-    {
-        fprintf( stderr, "error receiving, exit!\n" );
-        exit( 0 );
-    }
-    *buff = ( char* )calloc( sizeof( char ), *msg_len + 1 );
-    if ( recvMsg( sd, *buff, *msg_len ) == 1 )
-    {
-        fprintf( stderr, "error receiving, exit!\n" );
-        exit( 0 );
-    }
-
-    int res = parseCmd( *buff, *msg_len, cmd );
-    free( msg_len );
-
-    if ( res != 0 )
-    {
-        printf( "recv'd msg: %s\n", buff );
-        return 1;
-    }
-    return 0;
-}
-
 int _listCmd( int sd )
 {
     {
@@ -167,6 +90,59 @@ int _getCmd( int sd, char* file_name )
     free( buff );
 }
 
+int _putCmd( int sd, char* file_name )
+{
+    if ( access( file_name, F_OK | R_OK ) != 0 )
+    {
+        if ( access( file_name, F_OK ) != 0 )
+        {
+            printf( "file %s doesn't exist\n", file_name );
+        }
+        else
+        {
+            printf( "file %s doesn't have read permission\n", file_name );
+        }
+        return 0;
+    }
+
+    {
+        Message cmd;
+        char* buff = createPutRequestCmd( &cmd, file_name );
+        if ( sendCmdMsg( sd, buff, cmd.length ) == 1 )
+        {
+            exit( 1 );
+        }
+        free( buff );
+    }
+
+    char* buff = NULL;
+    Message cmd;
+    int len = 0;
+    recvCmdMsg( sd, &buff, &len, &cmd );
+    free( buff );
+
+    if ( PUT_REPLY != cmd.type )
+    {
+        printf( "wrong cmd\n" );
+        printCmd( &cmd );
+        return 1;
+    }
+
+    printf( "transmitting file %s\n", file_name );
+
+    {
+        Message reply_cmd;
+        char* cmd_buff = createFileDataCmd( &reply_cmd, file_name );
+        if ( sendCmdMsg( sd, cmd_buff, reply_cmd.length ) == 1 )
+        {
+            exit( 1 );
+        }
+        free( cmd_buff );
+    }
+
+    return 0;
+}
+
 int main( int argc, char** argv )
 {
     if ( 4 != argc && 5 != argc )
@@ -215,6 +191,10 @@ int main( int argc, char** argv )
     else if ( 0 == strcmp( argv[3], "get" ) )
     {
         _getCmd( sd, argv[4] );
+    }
+    else if ( 0 == strcmp( argv[3], "put" ) )
+    {
+        _putCmd( sd, argv[4] );
     }
     else
     {
