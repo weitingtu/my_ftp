@@ -64,75 +64,107 @@ int sendCmdMsg( int sd, char* buff, int len )
     return 0;
 }
 
-int sendCmd( int sd )
+int recvCmdMsg( int sd, char** buff, int* len, Message* cmd )
 {
-    Message cmd;
-    char* buff = createListRequestCmd( &cmd );
+    int* msg_len = ( int* )calloc( sizeof( int ), 1 );
+    if ( recvMsg( sd, ( char* )msg_len, sizeof( int ) ) == 1 )
+    {
+        fprintf( stderr, "error receiving, exit!\n" );
+        exit( 0 );
+    }
+    *buff = ( char* )calloc( sizeof( char ), *msg_len + 1 );
+    if ( recvMsg( sd, *buff, *msg_len ) == 1 )
+    {
+        fprintf( stderr, "error receiving, exit!\n" );
+        exit( 0 );
+    }
 
-    sendCmdMsg( sd, buff, cmd.length );
+    int res = parseCmd( *buff, *msg_len, cmd );
+    free( msg_len );
 
-    free( buff );
+    if ( res != 0 )
+    {
+        printf( "recv'd msg: %s\n", buff );
+        return 1;
+    }
+    return 0;
 }
 
-/*
- * Worker thread performing receiving and outputing messages
- */
-void* pthread_prog( void* sDescriptor )
+int _listCmd( int sd )
 {
-    int sd = *( int* )sDescriptor;
-    int* len = ( int* )calloc( sizeof( int ), 1 );
-    while ( 1 )
     {
-        if ( recvMsg( sd, ( char* )len, sizeof( int ) ) == 1 )
-        {
-            fprintf( stderr, "error receiving, exit!\n" );
-            exit( 0 );
-        }
-        char* buff = ( char* )calloc( sizeof( char ), *len + 1 );
-        if ( recvMsg( sd, buff, *len ) == 1 )
-        {
-            fprintf( stderr, "error receiving, exit!\n" );
-            exit( 0 );
-        }
         Message cmd;
-        if ( parseCmd( buff, *len, &cmd ) == 0 )
+        char* buff = createListRequestCmd( &cmd );
+        if ( sendCmdMsg( sd, buff, cmd.length ) == 1 )
         {
-            switch ( cmd.type )
-            {
-            case LIST_REQUEST:
-            {
-                Message reply_cmd;
-                char* cmd_buff = createListReplyCmd( &reply_cmd );
-                if ( sendCmdMsg( sd, cmd_buff, reply_cmd.length ) == 1 )
-                {
-                    exit( 1 );
-                }
-                free( cmd_buff );
-            }
-            break;
-            case LIST_REPLY:
-                processListReplyCmd( buff, *len, &cmd );
-                break;
-            case GET_REQUEST:
-                break;
-            case GET_REPLY:
-                break;
-            case PUT_REQUEST:
-                break;
-            case PUT_REPLY:
-                break;
-            case FILE_DATA:
-                break;
-            default:
-                break;
-            }
+            exit( 1 );
         }
-        else
-        {
-            printf( "recv'd msg: %s\n", buff );
-        }
+        free( buff );
     }
-    free( len );
+
+    char* buff = NULL;
+    Message cmd;
+    int len;
+    recvCmdMsg( sd, &buff, &len, &cmd );
+
+    if ( LIST_REPLY == cmd.type )
+    {
+        processListReplyCmd( buff );
+    }
+    else
+    {
+        printf( "wrong cmd\n" );
+        printCmd( &cmd );
+    }
+
+    return 0;
+}
+
+int _getCmd( int sd, char* file_name )
+{
+    {
+        Message cmd;
+        char* buff = createGetRequestCmd( &cmd, file_name );
+        if ( sendCmdMsg( sd, buff, cmd.length ) == 1 )
+        {
+            exit( 1 );
+        }
+        free( buff );
+    }
+
+    char* buff = NULL;
+    Message cmd;
+    int len = 0;
+    recvCmdMsg( sd, &buff, &len, &cmd );
+    free( buff );
+
+    if ( GET_REPLY_NON_EXIST == cmd.type )
+    {
+        printf( "file %s doesn't exist\n", file_name );
+        return 0;
+    }
+    else if ( GET_REPLY_EXIST != cmd.type )
+    {
+        printf( "wrong cmd\n" );
+        printCmd( &cmd );
+        return 1;
+    }
+
+    printf( "Receiving file %s\n", file_name );
+
+    buff = NULL;
+    len = 0;
+    recvCmdMsg( sd, &buff, &len, &cmd );
+    FILE* fp = fopen( file_name, "w" );
+    if ( NULL == fp )
+    {
+        fprintf( stderr, "failed to open %f\n", file_name );
+        free( buff );
+        return 1;
+    }
+    fwrite( buff + sizeof( Message ), sizeof( char ), cmd.length - sizeof( Message ), fp );
+    fclose( fp );
+    free( buff );
 }
 
 int main( int argc, char** argv )
@@ -175,93 +207,20 @@ int main( int argc, char** argv )
         fprintf( stderr, "connection error: %s (Errno:%d)\n", strerror( errno ), errno );
         exit( 0 );
     }
-    {
-//    pthread_t worker;
-//        pthread_create( &worker, NULL, pthread_prog, &sd );
-//        char buff[100];
-//        while ( 1 )
-//        {
-//            memset( buff, 0, 100 );
-//            scanf( "%s", buff );
-//            int* msgLen = ( int* )calloc( sizeof( int ), 1 );
-//            *msgLen = strlen( buff );
-//            if ( sendMsg( sd, ( char* )msgLen, sizeof( int ) ) == 1 )
-//            {
-//                fprintf( stderr, "send error, exit\n" );
-//                exit( 0 );
-//            }
-//            if ( sendMsg( sd, buff, *msgLen ) == 1 )
-//            {
-//                fprintf( stderr, "send error, exit\n" );
-//                exit( 0 );
-//            }
-//            if ( sendCmd( sd ) == 1 )
-//            {
-//                fprintf( stderr, "send error, exit\n" );
-//                exit( 0 );
-//            }
-//            free( msgLen );
-//        }
-    }
 
     if ( 0 == strcmp( argv[3], "list" ) )
     {
-        Message cmd;
-        char* buff = createListRequestCmd( &cmd );
-        if ( sendCmdMsg( sd, buff, cmd.length ) == 1 )
-        {
-            exit( 1 );
-        }
-        free( buff );
+        _listCmd( sd );
+    }
+    else if ( 0 == strcmp( argv[3], "get" ) )
+    {
+        _getCmd( sd, argv[4] );
     }
     else
     {
         fprintf( stderr, "command error: command %s is not supported\n", argv[3] );
         exit( 0 );
     }
-
-    int* msg_len = ( int* )calloc( sizeof( int ), 1 );
-    if ( recvMsg( sd, ( char* )msg_len, sizeof( int ) ) == 1 )
-    {
-        fprintf( stderr, "error receiving, exit!\n" );
-        exit( 0 );
-    }
-    char* buff = ( char* )calloc( sizeof( char ), *msg_len + 1 );
-    if ( recvMsg( sd, buff, *msg_len ) == 1 )
-    {
-        fprintf( stderr, "error receiving, exit!\n" );
-        exit( 0 );
-    }
-
-    Message cmd;
-    if ( parseCmd( buff, *msg_len, &cmd ) != 0 )
-    {
-        printf( "recv'd msg: %s\n", buff );
-    }
-    else
-    {
-        switch ( cmd.type )
-        {
-        case LIST_REQUEST:
-            break;
-        case LIST_REPLY:
-            processListReplyCmd( buff, *msg_len, &cmd );
-            break;
-        case GET_REQUEST:
-            break;
-        case GET_REPLY:
-            break;
-        case PUT_REQUEST:
-            break;
-        case PUT_REPLY:
-            break;
-        case FILE_DATA:
-            break;
-        default:
-            break;
-        }
-    }
-    free( msg_len );
 
     return 0;
 }

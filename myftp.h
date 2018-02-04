@@ -17,7 +17,8 @@ typedef enum Cmd_e
     LIST_REQUEST = 0xA1,
     LIST_REPLY   = 0xA2,
     GET_REQUEST  = 0xB1,
-    GET_REPLY    = 0xB2,
+    GET_REPLY_EXIST     = 0xB2,
+    GET_REPLY_NON_EXIST = 0xB3,
     PUT_REQUEST  = 0xC1,
     PUT_REPLY    = 0xC2,
     FILE_DATA    = 0xFF
@@ -32,10 +33,15 @@ struct message_s
 
 typedef struct message_s Message;
 
+char* get_data_dir_path();
+
 void printCmd ( Message* cmd );
 char* createListRequestCmd( Message* cmd );
 char* createListReplyCmd( Message* cmd );
-void processListReplyCmd( char* buff, int len, Message* cmd );
+char* createGetRequestCmd( Message* cmd, char* file_name );
+char* createGetReplyCmd( Message* cmd, int file_exist );
+char* createFileDataCmd( Message* cmd, char* file_name );
+void processListReplyCmd( char* buff );
 int parseCmd ( char* buff, int len, Message* cmd );
 
 #endif

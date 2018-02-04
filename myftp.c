@@ -1,18 +1,18 @@
 #include "myftp.h"
 #include <dirent.h>
 
-static char* _get_data_dir_path()
+char* get_data_dir_path()
 {
     char* path = getcwd( NULL, 0 );
-    path = realloc( path, strlen( path ) + 5 );
-    strcat( path, "/data" );
+    path = realloc( path, strlen( path ) + 6 );
+    strcat( path, "/data/" );
 
     return path;
 }
 
 char* _get_data_dir_files()
 {
-    char* path = _get_data_dir_path();
+    char* path = get_data_dir_path();
     DIR* ptr_dir = opendir( path );
     free( path );
 
@@ -84,7 +84,60 @@ char* createListReplyCmd( Message* cmd )
     return buff;
 }
 
-void processListReplyCmd( char* buff, int len, Message* cmd )
+char* createGetRequestCmd( Message* cmd, char* file_name )
+{
+    strcpy( cmd->protocol, "myftp" );
+    cmd->type = GET_REQUEST;
+    cmd->length = sizeof( Message ) + strlen( file_name );
+
+    char* buff = malloc( sizeof( char ) * cmd->length );
+    memcpy( buff, cmd, sizeof( Message ) );
+    memcpy( buff + sizeof( Message ), file_name, strlen( file_name ) );
+    return buff;
+}
+
+char* createGetReplyCmd( Message* cmd, int file_exist )
+{
+    strcpy( cmd->protocol, "myftp" );
+    cmd->type = file_exist == 0 ? GET_REPLY_EXIST : GET_REPLY_NON_EXIST;
+    cmd->length = sizeof( Message );
+
+    char* buff = malloc( sizeof( char ) * cmd->length );
+    memcpy( buff, cmd, cmd->length );
+    return buff;
+}
+
+char* createFileDataCmd( Message* cmd, char* file_name )
+{
+    strcpy( cmd->protocol, "myftp" );
+    cmd->type = FILE_DATA;
+    cmd->length = sizeof( Message );
+
+    FILE* fp = fopen( file_name, "r" );
+    if ( NULL == fp )
+    {
+        fprintf( stderr, "failed to open %f\n", file_name );
+
+        char* buff = malloc( sizeof( char ) * cmd->length );
+        memcpy( buff, cmd, sizeof( Message ) );
+        return buff;
+    }
+
+    fseek( fp, 0, SEEK_END );
+    long f_size = ftell( fp );
+    fseek( fp, 0, SEEK_SET );
+
+    cmd->length = cmd->length + f_size;
+    char* buff = malloc( sizeof( char ) * cmd->length + 1 );
+    memcpy( buff, cmd, sizeof( Message ) );
+    fread( buff + sizeof( Message ), f_size, 1, fp );
+
+    fclose( fp );
+
+    return buff;
+}
+
+void processListReplyCmd( char* buff )
 {
     printf( "%s\n", buff + sizeof( Message ) );
 }

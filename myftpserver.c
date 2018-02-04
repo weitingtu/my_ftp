@@ -68,6 +68,56 @@ int sendCmdMsg( int sd, char* buff, int len )
     return 0;
 }
 
+int _getRequest( int sd, char* buff )
+{
+    char* file_name = get_data_dir_path();
+    file_name = realloc( file_name, strlen( file_name ) + strlen( buff + sizeof( Message ) ) );
+    strcat( file_name, buff + sizeof( Message ) );
+
+    int file_exist = access( file_name, F_OK | R_OK );
+
+    if ( file_exist != 0 )
+    {
+        if ( access( file_name, F_OK ) != 0 )
+        {
+            printf( "file %s doesn't exist\n", file_name );
+        }
+        else
+        {
+            printf( "file %s doesn't have read permission\n", file_name );
+        }
+    }
+
+    {
+        Message reply_cmd;
+        char* cmd_buff = createGetReplyCmd( &reply_cmd, file_exist );
+        if ( sendCmdMsg( sd, cmd_buff, reply_cmd.length ) == 1 )
+        {
+            exit( 1 );
+        }
+        free( cmd_buff );
+    }
+
+    if ( file_exist != 0 )
+    {
+        free( file_name );
+        return 0;
+    }
+
+    {
+        Message reply_cmd;
+        char* cmd_buff = createFileDataCmd( &reply_cmd, file_name );
+        if ( sendCmdMsg( sd, cmd_buff, reply_cmd.length ) == 1 )
+        {
+            exit( 1 );
+        }
+        free( cmd_buff );
+    }
+
+    free( file_name );
+    return 0;
+}
+
 /*
  * Worker thread performing receiving and outputing messages
  */
@@ -122,11 +172,14 @@ void* pthread_prog( void* sDescriptor )
             }
             break;
             case LIST_REPLY:
-                processListReplyCmd( buff, *len, &cmd );
+                processListReplyCmd( buff );
                 break;
             case GET_REQUEST:
-                break;
-            case GET_REPLY:
+            {
+                _getRequest( sd, buff );
+            }
+            break;
+            case GET_REPLY_EXIST:
                 break;
             case PUT_REQUEST:
                 break;
@@ -201,24 +254,6 @@ int main( int argc, char** argv )
 
         pthread_t worker;
         pthread_create( &worker, NULL, pthread_prog, &client_sd );
-//        char buff[100];
-//        while ( 1 )
-//        {
-//            memset( buff, 0, 100 );
-//            scanf( "%s", buff );
-//            int* msgLen = ( int* )calloc( sizeof( int ), 1 );
-//            *msgLen = strlen( buff );
-//            if ( sendMsg( client_sd, ( char* )msgLen, sizeof( int ) ) == 1 )
-//            {
-//                fprintf( stderr, "send error, exit\n" );
-//                exit( 0 );
-//            }
-//            if ( sendMsg( client_sd, buff, *msgLen ) == 1 )
-//            {
-//                fprintf( stderr, "send error, exit\n" );
-//                exit( 0 );
-//            }
-//        }
     }
     close( sd );
     return 0;
