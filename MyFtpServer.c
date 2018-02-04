@@ -18,10 +18,15 @@ int recvMsg( int sd, char* buff, int len )
     while ( recvLen != len )
     {
         int rLen = recv( sd, buff + recvLen, len - recvLen, 0 );
-        if ( rLen <= 0 )
+        if ( rLen < 0 )
         {
-            fprintf( stderr, "error recving msg %d %d %d\n", len, recvLen, rLen );
+            fprintf( stderr, "error recving msg\n" );
             return 1;
+        }
+        if ( rLen == 0 )
+        {
+            printf( "stop recving msg\n" );
+            return 2;
         }
         recvLen += rLen;
     }
@@ -66,22 +71,39 @@ int sendCmdMsg( int sd, char* buff, int len )
 /*
  * Worker thread performing receiving and outputing messages
  */
+
 void* pthread_prog( void* sDescriptor )
 {
     int sd = *( int* )sDescriptor;
     int* len = ( int* )calloc( sizeof( int ), 1 );
     while ( 1 )
     {
-        if ( recvMsg( sd, ( char* )len, sizeof( int ) ) == 1 )
         {
-            fprintf( stderr, "error receiving, exit!\n" );
-            exit( 0 );
+            int res = recvMsg( sd, ( char* )len, sizeof( int ) );
+            if ( 1 == res )
+            {
+                fprintf( stderr, "error receiving, exit!\n" );
+                break;
+            }
+            else if ( 2 == res )
+            {
+                printf( "stop recving, exit!\n" );
+                break;
+            }
         }
         char* buff = ( char* )calloc( sizeof( char ), *len + 1 );
-        if ( recvMsg( sd, buff, *len ) == 1 )
         {
-            fprintf( stderr, "error receiving, exit!\n" );
-            exit( 0 );
+            int res = recvMsg( sd, buff, *len );
+            if ( 1 == res )
+            {
+                fprintf( stderr, "error receiving, exit!\n" );
+                break;
+            }
+            else if ( 2 == res )
+            {
+                printf( "stop recving, exit!\n" );
+                break;
+            }
         }
         Message cmd;
         if ( parseCmd( buff, *len, &cmd ) == 0 )
@@ -165,35 +187,38 @@ int main( int argc, char** argv )
     }
     struct sockaddr_in client_addr;
     int addr_len = sizeof( client_addr );
-    if ( ( client_sd = accept( sd, ( struct sockaddr* )&client_addr, &addr_len ) ) <
-            0 )
+    while ( client_sd = accept( sd, ( struct sockaddr* )&client_addr, &addr_len ) )
     {
-        printf( "accept erro: %s (Errno:%d)\n", strerror( errno ), errno );
-        exit( 0 );
-    }
-    else
-    {
-        printf( "receive connection from %s\n", inet_ntoa( client_addr.sin_addr ) );
-    }
-    pthread_t worker;
-    pthread_create( &worker, NULL, pthread_prog, &client_sd );
-    char buff[100];
-    while ( 1 )
-    {
-        memset( buff, 0, 100 );
-        scanf( "%s", buff );
-        int* msgLen = ( int* )calloc( sizeof( int ), 1 );
-        *msgLen = strlen( buff );
-        if ( sendMsg( client_sd, ( char* )msgLen, sizeof( int ) ) == 1 )
+        if ( client_sd  < 0 )
         {
-            fprintf( stderr, "send error, exit\n" );
+            printf( "accept erro: %s (Errno:%d)\n", strerror( errno ), errno );
             exit( 0 );
         }
-        if ( sendMsg( client_sd, buff, *msgLen ) == 1 )
+        else
         {
-            fprintf( stderr, "send error, exit\n" );
-            exit( 0 );
+            printf( "receive connection from %s\n", inet_ntoa( client_addr.sin_addr ) );
         }
+
+        pthread_t worker;
+        pthread_create( &worker, NULL, pthread_prog, &client_sd );
+//        char buff[100];
+//        while ( 1 )
+//        {
+//            memset( buff, 0, 100 );
+//            scanf( "%s", buff );
+//            int* msgLen = ( int* )calloc( sizeof( int ), 1 );
+//            *msgLen = strlen( buff );
+//            if ( sendMsg( client_sd, ( char* )msgLen, sizeof( int ) ) == 1 )
+//            {
+//                fprintf( stderr, "send error, exit\n" );
+//                exit( 0 );
+//            }
+//            if ( sendMsg( client_sd, buff, *msgLen ) == 1 )
+//            {
+//                fprintf( stderr, "send error, exit\n" );
+//                exit( 0 );
+//            }
+//        }
     }
     close( sd );
     return 0;

@@ -166,7 +166,6 @@ int main( int argc, char** argv )
 
     int sd = socket( AF_INET, SOCK_STREAM, 0 );
     struct sockaddr_in server_addr;
-//    pthread_t worker;
     memset( &server_addr, 0, sizeof( server_addr ) );
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = inet_addr( argv[1] );
@@ -176,31 +175,34 @@ int main( int argc, char** argv )
         fprintf( stderr, "connection error: %s (Errno:%d)\n", strerror( errno ), errno );
         exit( 0 );
     }
-//    pthread_create( &worker, NULL, pthread_prog, &sd );
-//    char buff[100];
-//    while ( 1 )
-//    {
-//        memset( buff, 0, 100 );
-//        scanf( "%s", buff );
-//        int* msgLen = ( int* )calloc( sizeof( int ), 1 );
-//        *msgLen = strlen( buff );
-//        if ( sendMsg( sd, ( char* )msgLen, sizeof( int ) ) == 1 )
+    {
+//    pthread_t worker;
+//        pthread_create( &worker, NULL, pthread_prog, &sd );
+//        char buff[100];
+//        while ( 1 )
 //        {
-//            fprintf( stderr, "send error, exit\n" );
-//            exit( 0 );
+//            memset( buff, 0, 100 );
+//            scanf( "%s", buff );
+//            int* msgLen = ( int* )calloc( sizeof( int ), 1 );
+//            *msgLen = strlen( buff );
+//            if ( sendMsg( sd, ( char* )msgLen, sizeof( int ) ) == 1 )
+//            {
+//                fprintf( stderr, "send error, exit\n" );
+//                exit( 0 );
+//            }
+//            if ( sendMsg( sd, buff, *msgLen ) == 1 )
+//            {
+//                fprintf( stderr, "send error, exit\n" );
+//                exit( 0 );
+//            }
+//            if ( sendCmd( sd ) == 1 )
+//            {
+//                fprintf( stderr, "send error, exit\n" );
+//                exit( 0 );
+//            }
+//            free( msgLen );
 //        }
-//        if ( sendMsg( sd, buff, *msgLen ) == 1 )
-//        {
-//            fprintf( stderr, "send error, exit\n" );
-//            exit( 0 );
-//        }
-//        if ( sendCmd( sd ) == 1 )
-//        {
-//            fprintf( stderr, "send error, exit\n" );
-//            exit( 0 );
-//        }
-//        free( msgLen );
-//    }
+    }
 
     if ( 0 == strcmp( argv[3], "list" ) )
     {
