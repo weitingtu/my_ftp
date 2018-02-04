@@ -1,7 +1,7 @@
 CC = gcc
 CFLAG = -lpthread
 
-all: server client MTserver MTclient MyFtpClient MyFtpServer cmd.o MyFtpClient.o
+all: server client MTserver MTclient myftpclient myftpserver myftp.o myftpclient.o myftpserver.o
 
 server: server.c
 	$(CC) -o $@ $<
@@ -15,20 +15,20 @@ MTserver: MTserver.c
 MTclient: MTclient.c
 	$(CC) -o $@ $< $(CFLAG)
 
-cmd.o : cmd.c cmd.h
+myftp.o : myftp.c myftp.h
 	$(CC) -o $@ -c $< $(CFLAG)
 
-MyFtpServer.o: MyFtpServer.c cmd.h
+myftpserver.o: myftpserver.c myftp.h
 	$(CC) -o $@ -c $< $(CFLAG)
 
-MyFtpServer: MyFtpServer.o cmd.o
+myftpserver: myftpserver.o myftp.o
 	$(CC) -o $@ $^ $(CFLAG)
 
-MyFtpClient.o: MyFtpClient.c cmd.h
+myftpclient.o: myftpclient.c myftp.h
 	$(CC) -o $@ -c $< $(CFLAG)
 
-MyFtpClient: MyFtpClient.o cmd.o 
+myftpclient: myftpclient.o myftp.o 
 	$(CC) -o $@ $^ $(CFLAG)
 
 clean:
-	rm server client MTserver MTclient MyFtpServer MyFtpClient cmd.o MyFtpClient.o
+	rm server client MTserver MTclient myftpserver myftpclient myftp.o myftpclient.o myftpserver.o

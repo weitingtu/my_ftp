@@ -7,9 +7,9 @@ SOURCES += \
     client.c \
     MTserver.c \
     MTclient.c \
-    MyFtpServer.c \
-    MyFtpClient.c \
-    cmd.c \
+    myftpserver.c \
+    myftpclient.c \
+    myftp.c \
 
 HEADERS += \
-    cmd.h \
+    myftp.h \

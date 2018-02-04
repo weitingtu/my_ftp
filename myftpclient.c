@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "cmd.h"
+#include "myftp.h"
 
 #define IPADDR "127.0.0.1"
 #define PORT 12345

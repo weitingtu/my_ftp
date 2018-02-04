@@ -1,4 +1,4 @@
-#include "cmd.h"
+#include "myftp.h"
 #include <dirent.h>
 
 static char* _get_data_dir_path()

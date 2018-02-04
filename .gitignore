@@ -53,8 +53,8 @@ dkms.conf
 
 MTclient
 MTserver
-MyFtpClient
-MyFtpServer
+myftpclient
+myftpserver
 client
 server
 data/

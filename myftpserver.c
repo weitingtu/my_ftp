@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "cmd.h"
+#include "myftp.h"
 
 #define PORT 12345
 

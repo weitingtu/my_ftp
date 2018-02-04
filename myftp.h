@@ -1,5 +1,5 @@
-#ifndef _CMD_H_
-#define _CMD_H_
+#ifndef _MYFTP_H_
+#define _MYFTP_H_
 
 #include <arpa/inet.h>
 #include <errno.h>
