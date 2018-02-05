@@ -194,11 +194,6 @@ char* createFileDataCmd( Message* cmd, char* file_name )
     return buff;
 }
 
-void processListReplyCmd( char* buff )
-{
-    printf( "%s\n", buff + sizeof( Message ) );
-}
-
 int parseCmd ( char* buff, int len, Message* cmd )
 {
     if ( len < sizeof( Message ) )

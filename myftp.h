@@ -46,7 +46,6 @@ char* createGetReplyCmd( Message* cmd, int file_exist );
 char* createPutRequestCmd( Message* cmd, char* file_name );
 char* createPutReplyCmd( Message* cmd );
 char* createFileDataCmd( Message* cmd, char* file_name );
-void processListReplyCmd( char* buff );
 int parseCmd ( char* buff, int len, Message* cmd );
 
 #endif

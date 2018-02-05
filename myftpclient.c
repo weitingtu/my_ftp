@@ -32,7 +32,7 @@ int _listCmd( int sd )
 
     if ( LIST_REPLY == cmd.type )
     {
-        processListReplyCmd( buff );
+        printf( "%s\n", buff + sizeof( Message ) );
     }
     else
     {

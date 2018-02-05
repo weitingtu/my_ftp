@@ -198,7 +198,6 @@ void* pthread_prog( void* sDescriptor )
             }
             break;
             case LIST_REPLY:
-                processListReplyCmd( buff );
                 break;
             case GET_REQUEST:
             {
