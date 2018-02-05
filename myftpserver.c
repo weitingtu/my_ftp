@@ -63,7 +63,7 @@ char* _get_data_dir_files()
 char* _getFileName( char* buff )
 {
     char* file_name = _get_data_dir_path();
-    file_name = realloc( file_name, strlen( file_name ) + strlen( buff + sizeof( Message ) ) );
+    file_name = realloc( file_name, strlen( file_name ) + strlen( buff + sizeof( Message ) ) + 1 );
     strcat( file_name, buff + sizeof( Message ) );
 
     return file_name;
