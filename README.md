@@ -84,6 +84,11 @@ client> md5sum ./binary.dat
 ce2cd0d525e17a6bd370db688c06827f  ./binary.dat
 client> ./myftpclient 127.0.0.1 12345 put binary.dat
 ```
+Upload non-existence file `sample.dat` 
+```
+client> ./myftpclient 127.0.0.1 12345 put sample.dat
+file sample.dat doesn't exist
+```
 Check md5sum
 ```
 sparc1> md5sum ./data/ascii.dat
