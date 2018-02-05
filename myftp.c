@@ -83,53 +83,6 @@ int recvCmdMsg( int sd, char** buff, int* len, Message* cmd )
     return 0;
 }
 
-char* get_data_dir_path()
-{
-    char* path = getcwd( NULL, 0 );
-    path = realloc( path, strlen( path ) + 6 );
-    strcat( path, "/data/" );
-
-    return path;
-}
-
-char* _get_data_dir_files()
-{
-    char* path = get_data_dir_path();
-    DIR* ptr_dir = opendir( path );
-    free( path );
-
-    char* file_str = NULL;
-    struct dirent prev_dir_entry;
-    struct dirent* ptr_dir_entry = NULL;
-
-    for ( ;; )
-    {
-        readdir_r( ptr_dir, &prev_dir_entry, &ptr_dir_entry );
-        if ( !ptr_dir_entry )
-        {
-            break;
-        }
-        else
-        {
-            if ( ( strcmp( ptr_dir_entry->d_name, "." ) != 0 ) && ( strcmp( ptr_dir_entry->d_name, ".." ) != 0 ) ) // skip "." and ".." file listings
-            {
-                if ( NULL == file_str )
-                {
-                    file_str = strdup( ptr_dir_entry->d_name );
-                }
-                else
-                {
-                    file_str = realloc( file_str, strlen( file_str ) + strlen( ptr_dir_entry->d_name ) + 1 + 1 );
-                    strcat( file_str, " " );
-                    strcat( file_str, ptr_dir_entry->d_name );
-                }
-            }
-        }
-    }
-    closedir( ptr_dir );
-    return file_str;
-}
-
 void printCmd ( Message* cmd )
 {
     printf( "protocal: " );
@@ -153,9 +106,8 @@ char* createListRequestCmd( Message* cmd )
     return buff;
 }
 
-char* createListReplyCmd( Message* cmd )
+char* createListReplyCmd( Message* cmd, char* file_str )
 {
-    char* file_str = _get_data_dir_files();
     strcpy( cmd->protocol, "myftp" );
     cmd->type = LIST_REPLY;
     cmd->length = sizeof( Message ) + strlen( file_str );

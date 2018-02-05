@@ -38,11 +38,9 @@ int sendMsg( int sd, char* buff, int len );
 int sendCmdMsg( int sd, char* buff, int len );
 int recvCmdMsg( int sd, char** buff, int* len, Message* cmd );
 
-char* get_data_dir_path();
-
 void printCmd ( Message* cmd );
 char* createListRequestCmd( Message* cmd );
-char* createListReplyCmd( Message* cmd );
+char* createListReplyCmd( Message* cmd , char* file_str );
 char* createGetRequestCmd( Message* cmd, char* file_name );
 char* createGetReplyCmd( Message* cmd, int file_exist );
 char* createPutRequestCmd( Message* cmd, char* file_name );

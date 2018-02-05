@@ -9,12 +9,60 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "myftp.h"
+#include <dirent.h>
 
 #define PORT 12345
 
+char* _get_data_dir_path()
+{
+    char* path = getcwd( NULL, 0 );
+    path = realloc( path, strlen( path ) + 6 );
+    strcat( path, "/data/" );
+
+    return path;
+}
+
+char* _get_data_dir_files()
+{
+    char* path = _get_data_dir_path();
+    DIR* ptr_dir = opendir( path );
+    free( path );
+
+    char* file_str = NULL;
+    struct dirent prev_dir_entry;
+    struct dirent* ptr_dir_entry = NULL;
+
+    for ( ;; )
+    {
+        readdir_r( ptr_dir, &prev_dir_entry, &ptr_dir_entry );
+        if ( !ptr_dir_entry )
+        {
+            break;
+        }
+        else
+        {
+            if ( ( strcmp( ptr_dir_entry->d_name, "." ) != 0 ) && ( strcmp( ptr_dir_entry->d_name, ".." ) != 0 ) ) // skip "." and ".." file listings
+            {
+                if ( NULL == file_str )
+                {
+                    file_str = strdup( ptr_dir_entry->d_name );
+                }
+                else
+                {
+                    file_str = realloc( file_str, strlen( file_str ) + strlen( ptr_dir_entry->d_name ) + 1 + 1 );
+                    strcat( file_str, " " );
+                    strcat( file_str, ptr_dir_entry->d_name );
+                }
+            }
+        }
+    }
+    closedir( ptr_dir );
+    return file_str;
+}
+
 char* _getFileName( char* buff )
 {
-    char* file_name = get_data_dir_path();
+    char* file_name = _get_data_dir_path();
     file_name = realloc( file_name, strlen( file_name ) + strlen( buff + sizeof( Message ) ) );
     strcat( file_name, buff + sizeof( Message ) );
 
@@ -139,7 +187,9 @@ void* pthread_prog( void* sDescriptor )
             case LIST_REQUEST:
             {
                 Message reply_cmd;
-                char* cmd_buff = createListReplyCmd( &reply_cmd );
+                char* file_str = _get_data_dir_files();
+                char* cmd_buff = createListReplyCmd( &reply_cmd, file_str );
+                free( file_str );
                 if ( sendCmdMsg( sd, cmd_buff, reply_cmd.length ) == 1 )
                 {
                     exit( 1 );
