@@ -19,11 +19,19 @@ int recvMsg( int sd, char* buff, int len )
         }
         recvLen += rLen;
     }
+    for ( int i = 0; i < len; i += 2 )
+    {
+        *( uint16_t* )( buff + i ) = ntohs( *( uint16_t* )( buff + i ) );
+    }
     return 0;
 }
 
 int sendMsg( int sd, char* buff, int len )
 {
+    for ( int i = 0; i < len; i += 2 )
+    {
+        *( uint16_t* )( buff + i ) = htons( *( uint16_t* )( buff + i ) );
+    }
     int recvLen = 0;
     while ( recvLen != len )
     {
@@ -48,7 +56,7 @@ int sendCmdMsg( int sd, char* buff, int len )
         fprintf( stderr, "send error, exit\n" );
         return 1;
     }
-    if ( sendMsg( sd, buff, *msg_len ) == 1 )
+    if ( sendMsg( sd, buff, len ) == 1 )
     {
         fprintf( stderr, "send error, exit\n" );
         return 1;
@@ -110,11 +118,11 @@ char* createListReplyCmd( Message* cmd, char* file_str )
 {
     strcpy( cmd->protocol, "myftp" );
     cmd->type = LIST_REPLY;
-    cmd->length = sizeof( Message ) + strlen( file_str );
+    cmd->length = sizeof( Message ) + strlen( file_str ) + 1;
 
     char* buff = malloc( sizeof( char ) * cmd->length );
     memcpy( buff, cmd, sizeof( Message ) );
-    memcpy( buff + sizeof( Message ), file_str, strlen( file_str ) );
+    memcpy( buff + sizeof( Message ), file_str, strlen( file_str ) + 1 );
     return buff;
 }
 
@@ -122,11 +130,11 @@ char* createGetRequestCmd( Message* cmd, char* file_name )
 {
     strcpy( cmd->protocol, "myftp" );
     cmd->type = GET_REQUEST;
-    cmd->length = sizeof( Message ) + strlen( file_name );
+    cmd->length = sizeof( Message ) + strlen( file_name ) + 1;
 
     char* buff = malloc( sizeof( char ) * cmd->length );
     memcpy( buff, cmd, sizeof( Message ) );
-    memcpy( buff + sizeof( Message ), file_name, strlen( file_name ) );
+    memcpy( buff + sizeof( Message ), file_name, strlen( file_name ) + 1 );
     return buff;
 }
 
@@ -145,11 +153,11 @@ char* createPutRequestCmd( Message* cmd, char* file_name )
 {
     strcpy( cmd->protocol, "myftp" );
     cmd->type = PUT_REQUEST;
-    cmd->length = sizeof( Message ) + strlen( file_name );
+    cmd->length = sizeof( Message ) + strlen( file_name ) + 1;
 
     char* buff = malloc( sizeof( char ) * cmd->length );
     memcpy( buff, cmd, sizeof( Message ) );
-    memcpy( buff + sizeof( Message ), file_name, strlen( file_name ) );
+    memcpy( buff + sizeof( Message ), file_name, strlen( file_name ) + 1 );
     return buff;
 }
 
