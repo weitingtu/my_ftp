@@ -20,7 +20,7 @@ int recvMsg( int sd, char* buff, int len )
         recvLen += rLen;
     }
     int i = 0;
-    for ( i = 0; i < len; i += 2 )
+    for ( i = 0; i < len - 1; i += 2 )
     {
         *( uint16_t* )( buff + i ) = ntohs( *( uint16_t* )( buff + i ) );
     }
@@ -30,7 +30,7 @@ int recvMsg( int sd, char* buff, int len )
 int sendMsg( int sd, char* buff, int len )
 {
     int i = 0;
-    for ( i = 0; i < len; i += 2 )
+    for ( i = 0; i < len - 1; i += 2 )
     {
         *( uint16_t* )( buff + i ) = htons( *( uint16_t* )( buff + i ) );
     }
@@ -70,25 +70,40 @@ int sendCmdMsg( int sd, char* buff, int len )
 int recvCmdMsg( int sd, char** buff, int* len, Message* cmd )
 {
     int* msg_len = ( int* )calloc( sizeof( int ), 1 );
-    if ( recvMsg( sd, ( char* )msg_len, sizeof( int ) ) == 1 )
+
+    int res = recvMsg( sd, ( char* )msg_len, sizeof( int ) );
+    if ( 1 == res )
     {
         fprintf( stderr, "error receiving, exit!\n" );
-        return 1;
+        return res;
     }
+    else if ( 2 == res )
+    {
+        printf( "stop recving, exit!\n" );
+        return res;
+    }
+    *len = *msg_len;
+
     *buff = ( char* )calloc( sizeof( char ), *msg_len + 1 );
-    if ( recvMsg( sd, *buff, *msg_len ) == 1 )
+    res = recvMsg( sd, *buff, *msg_len );
+    if ( 1 == res )
     {
         fprintf( stderr, "error receiving, exit!\n" );
-        return 1;
+        return res;
+    }
+    else if ( 2 == res )
+    {
+        printf( "stop recving, exit!\n" );
+        return res;
     }
 
-    int res = parseCmd( *buff, *msg_len, cmd );
+    res = parseCmd( *buff, *msg_len, cmd );
     free( msg_len );
 
     if ( res != 0 )
     {
         printf( "recv'd msg: %s\n", buff );
-        return 1;
+        return 3;
     }
     return 0;
 }

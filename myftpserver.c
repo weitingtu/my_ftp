@@ -149,80 +149,63 @@ void* pthread_prog( void* sDescriptor )
     int* len = ( int* )calloc( sizeof( int ), 1 );
     while ( 1 )
     {
-        {
-            int res = recvMsg( sd, ( char* )len, sizeof( int ) );
-            if ( 1 == res )
-            {
-                fprintf( stderr, "error receiving, exit!\n" );
-                break;
-            }
-            else if ( 2 == res )
-            {
-                printf( "stop recving, exit!\n" );
-                break;
-            }
-        }
-        char* buff = ( char* )calloc( sizeof( char ), *len + 1 );
-        {
-            int res = recvMsg( sd, buff, *len );
-            if ( 1 == res )
-            {
-                fprintf( stderr, "error receiving, exit!\n" );
-                break;
-            }
-            else if ( 2 == res )
-            {
-                printf( "stop recving, exit!\n" );
-                break;
-            }
-        }
+        char* buff = NULL;
+        int len = 0;
         Message cmd;
-        if ( parseCmd( buff, *len, &cmd ) == 0 )
+
+        int res = recvCmdMsg( sd, &buff, &len, &cmd );
+
+        // error receiving
+        if ( 1 == res || 2 == res )
         {
-            switch ( cmd.type )
-            {
-            case LIST_REQUEST:
-            {
-                Message reply_cmd;
-                char* file_str = _get_data_dir_files();
-                char* cmd_buff = createListReplyCmd( &reply_cmd, file_str );
-                free( file_str );
-                if ( sendCmdMsg( sd, cmd_buff, reply_cmd.length ) == 1 )
-                {
-                    exit( 1 );
-                }
-                free( cmd_buff );
-            }
             break;
-            case LIST_REPLY:
-                break;
-            case GET_REQUEST:
-            {
-                char* file_name = _getFileName( buff );
-                _getRequest( sd, file_name );
-                free( file_name );
-            }
-            break;
-            case GET_REPLY_EXIST:
-                break;
-            case PUT_REQUEST:
-            {
-                char* file_name = _getFileName( buff );
-                _putRequest( sd, file_name );
-                free( file_name );
-            }
-            break;
-            case PUT_REPLY:
-                break;
-            case FILE_DATA:
-                break;
-            default:
-                break;
-            }
         }
-        else
+
+        // failed to parse command
+        if ( 3 == res )
         {
-            printf( "recv'd msg: %s\n", buff );
+            continue;
+        }
+
+        switch ( cmd.type )
+        {
+        case LIST_REQUEST:
+        {
+            Message reply_cmd;
+            char* file_str = _get_data_dir_files();
+            char* cmd_buff = createListReplyCmd( &reply_cmd, file_str );
+            free( file_str );
+            if ( sendCmdMsg( sd, cmd_buff, reply_cmd.length ) == 1 )
+            {
+                exit( 1 );
+            }
+            free( cmd_buff );
+        }
+        break;
+        case LIST_REPLY:
+            break;
+        case GET_REQUEST:
+        {
+            char* file_name = _getFileName( buff );
+            _getRequest( sd, file_name );
+            free( file_name );
+        }
+        break;
+        case GET_REPLY_EXIST:
+            break;
+        case PUT_REQUEST:
+        {
+            char* file_name = _getFileName( buff );
+            _putRequest( sd, file_name );
+            free( file_name );
+        }
+        break;
+        case PUT_REPLY:
+            break;
+        case FILE_DATA:
+            break;
+        default:
+            break;
         }
         free( buff );
     }
