@@ -56,14 +56,15 @@ int sendCmdMsg( int sd, char* buff, int len )
     if ( sendMsg( sd, ( char* )msg_len, sizeof( int ) ) == 1 )
     {
         fprintf( stderr, "send error, exit\n" );
+        free( msg_len );
         return 1;
     }
+    free( msg_len );
     if ( sendMsg( sd, buff, len ) == 1 )
     {
         fprintf( stderr, "send error, exit\n" );
         return 1;
     }
-    free( msg_len );
     return 0;
 }
 
@@ -89,11 +90,17 @@ int recvCmdMsg( int sd, char** buff, int* len, Message* cmd )
     if ( 1 == res )
     {
         fprintf( stderr, "error receiving, exit!\n" );
+        free( msg_len );
+        free( *buff );
+        *buff = NULL;
         return res;
     }
     else if ( 2 == res )
     {
         printf( "stop recving, exit!\n" );
+        free( msg_len );
+        free( *buff );
+        *buff = NULL;
         return res;
     }
 
@@ -103,6 +110,8 @@ int recvCmdMsg( int sd, char** buff, int* len, Message* cmd )
     if ( res != 0 )
     {
         printf( "recv'd msg: %s\n", buff );
+        free( *buff );
+        *buff = NULL;
         return 3;
     }
     return 0;
