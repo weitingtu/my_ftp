@@ -173,6 +173,12 @@ int main( int argc, char** argv )
     }
 
     int sd = socket( AF_INET, SOCK_STREAM, 0 );
+    long val;
+    if ( setsockopt( sd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof( long ) ) == -1 )
+    {
+        printf( "setsockopt: %s (Errno:%d)\n", strerror( errno ), errno );
+        exit( 0 );
+    }
     struct sockaddr_in server_addr;
     memset( &server_addr, 0, sizeof( server_addr ) );
     server_addr.sin_family = AF_INET;

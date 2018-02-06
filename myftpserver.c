@@ -15,10 +15,7 @@
 
 char* _get_data_dir_path()
 {
-    char* path = getcwd( NULL, 0 );
-    path = realloc( path, strlen( path ) + 6 );
-    strcat( path, "/data/" );
-
+    char* path = strdup( "./data/" );
     return path;
 }
 

@@ -19,7 +19,8 @@ int recvMsg( int sd, char* buff, int len )
         }
         recvLen += rLen;
     }
-    for ( int i = 0; i < len; i += 2 )
+    int i = 0;
+    for ( i = 0; i < len; i += 2 )
     {
         *( uint16_t* )( buff + i ) = ntohs( *( uint16_t* )( buff + i ) );
     }
@@ -28,7 +29,8 @@ int recvMsg( int sd, char* buff, int len )
 
 int sendMsg( int sd, char* buff, int len )
 {
-    for ( int i = 0; i < len; i += 2 )
+    int i = 0;
+    for ( i = 0; i < len; i += 2 )
     {
         *( uint16_t* )( buff + i ) = htons( *( uint16_t* )( buff + i ) );
     }
@@ -94,13 +96,14 @@ int recvCmdMsg( int sd, char** buff, int* len, Message* cmd )
 void printCmd ( Message* cmd )
 {
     printf( "protocal: " );
-    for ( int i = 0; i < 5; ++i )
+    int i = 0;
+    for ( i = 0; i < 5; ++i )
     {
         printf( "%c", cmd->protocol[i] );
     }
     printf( "\n" );
-    printf( "type:     %x\n",  cmd->type );
-    printf( "length:   %zu\n", cmd->length );
+    printf( "type:     %x\n", cmd->type );
+    printf( "length:   %u\n", cmd->length );
 }
 
 char* createListRequestCmd( Message* cmd )
