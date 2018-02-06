@@ -28,7 +28,11 @@ int _listCmd( int sd )
     char* buff = NULL;
     Message cmd;
     int len;
-    recvCmdMsg( sd, &buff, &len, &cmd );
+    if ( 0 != recvCmdMsg( sd, &buff, &len, &cmd ) )
+    {
+        return 1;
+    }
+    free( buff );
 
     if ( LIST_REPLY == cmd.type )
     {
@@ -58,7 +62,10 @@ int _getCmd( int sd, char* file_name )
     char* buff = NULL;
     Message cmd;
     int len = 0;
-    recvCmdMsg( sd, &buff, &len, &cmd );
+    if ( 0 != recvCmdMsg( sd, &buff, &len, &cmd ) )
+    {
+        return 1;
+    }
     free( buff );
 
     if ( GET_REPLY_NON_EXIST == cmd.type )
@@ -77,7 +84,10 @@ int _getCmd( int sd, char* file_name )
 
     buff = NULL;
     len = 0;
-    recvCmdMsg( sd, &buff, &len, &cmd );
+    if ( 0 != recvCmdMsg( sd, &buff, &len, &cmd ) )
+    {
+        return 1;
+    }
     FILE* fp = fopen( file_name, "w" );
     if ( NULL == fp )
     {
