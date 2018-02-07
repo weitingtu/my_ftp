@@ -183,8 +183,8 @@ int main( int argc, char** argv )
     }
 
     int sd = socket( AF_INET, SOCK_STREAM, 0 );
-    long val = 0;
-    if ( setsockopt( sd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof( long ) ) == -1 )
+    int val = 0;
+    if ( setsockopt( sd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof( int ) ) == -1 )
     {
         printf( "setsockopt: %s (Errno:%d)\n", strerror( errno ), errno );
         exit( 0 );
