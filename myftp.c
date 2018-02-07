@@ -19,21 +19,11 @@ int recvMsg( int sd, char* buff, int len )
         }
         recvLen += rLen;
     }
-//    int i = 0;
-//    for ( i = 0; i < len - 1; i += 2 )
-//    {
-//        *( uint16_t* )( buff + i ) = ntohs( *( uint16_t* )( buff + i ) );
-//    }
     return 0;
 }
 
 int sendMsg( int sd, char* buff, int len )
 {
-//    int i = 0;
-//    for ( i = 0; i < len - 1; i += 2 )
-//    {
-//        *( uint16_t* )( buff + i ) = htons( *( uint16_t* )( buff + i ) );
-//    }
     int recvLen = 0;
     while ( recvLen != len )
     {
