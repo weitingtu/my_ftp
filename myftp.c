@@ -19,21 +19,21 @@ int recvMsg( int sd, char* buff, int len )
         }
         recvLen += rLen;
     }
-    int i = 0;
-    for ( i = 0; i < len - 1; i += 2 )
-    {
-        *( uint16_t* )( buff + i ) = ntohs( *( uint16_t* )( buff + i ) );
-    }
+//    int i = 0;
+//    for ( i = 0; i < len - 1; i += 2 )
+//    {
+//        *( uint16_t* )( buff + i ) = ntohs( *( uint16_t* )( buff + i ) );
+//    }
     return 0;
 }
 
 int sendMsg( int sd, char* buff, int len )
 {
-    int i = 0;
-    for ( i = 0; i < len - 1; i += 2 )
-    {
-        *( uint16_t* )( buff + i ) = htons( *( uint16_t* )( buff + i ) );
-    }
+//    int i = 0;
+//    for ( i = 0; i < len - 1; i += 2 )
+//    {
+//        *( uint16_t* )( buff + i ) = htons( *( uint16_t* )( buff + i ) );
+//    }
     int recvLen = 0;
     while ( recvLen != len )
     {
@@ -52,6 +52,7 @@ int sendCmdMsg( int sd, char* buff, int len )
 {
     int* msg_len = ( int* )calloc( sizeof( int ), 1 );
     *msg_len = len;
+    *( uint32_t* )( msg_len ) = htonl( *( uint32_t* )( msg_len ) );
 
     if ( sendMsg( sd, ( char* )msg_len, sizeof( int ) ) == 1 )
     {
@@ -83,6 +84,7 @@ int recvCmdMsg( int sd, char** buff, int* len, Message* cmd )
         printf( "stop recving, exit!\n" );
         return res;
     }
+    *( uint32_t* )( msg_len ) = ntohl( *( uint32_t* )( msg_len ) );
     *len = *msg_len;
 
     *buff = ( char* )calloc( sizeof( char ), *msg_len + 1 );
@@ -130,6 +132,13 @@ void printCmd ( Message* cmd )
     printf( "length:   %u\n", cmd->length );
 }
 
+Message _createSendCmd( Message* cmd )
+{
+    Message s = *cmd;
+    s.length = htonl( s.length );
+    return s;
+}
+
 char* createListRequestCmd( Message* cmd )
 {
     strcpy( cmd->protocol, "myftp" );
@@ -137,7 +146,8 @@ char* createListRequestCmd( Message* cmd )
     cmd->length = sizeof( Message );
 
     char* buff = malloc( sizeof( char ) * cmd->length );
-    memcpy( buff, cmd, cmd->length );
+    Message send_cmd = _createSendCmd( cmd );
+    memcpy( buff, &send_cmd, cmd->length );
     return buff;
 }
 
@@ -148,7 +158,8 @@ char* createListReplyCmd( Message* cmd, char* file_str )
     cmd->length = sizeof( Message ) + strlen( file_str ) + 1;
 
     char* buff = malloc( sizeof( char ) * cmd->length );
-    memcpy( buff, cmd, sizeof( Message ) );
+    Message send_cmd = _createSendCmd( cmd );
+    memcpy( buff, &send_cmd, sizeof( Message ) );
     memcpy( buff + sizeof( Message ), file_str, strlen( file_str ) + 1 );
     return buff;
 }
@@ -160,7 +171,8 @@ char* createGetRequestCmd( Message* cmd, char* file_name )
     cmd->length = sizeof( Message ) + strlen( file_name ) + 1;
 
     char* buff = malloc( sizeof( char ) * cmd->length );
-    memcpy( buff, cmd, sizeof( Message ) );
+    Message send_cmd = _createSendCmd( cmd );
+    memcpy( buff, &send_cmd, sizeof( Message ) );
     memcpy( buff + sizeof( Message ), file_name, strlen( file_name ) + 1 );
     return buff;
 }
@@ -172,7 +184,8 @@ char* createGetReplyCmd( Message* cmd, int file_exist )
     cmd->length = sizeof( Message );
 
     char* buff = malloc( sizeof( char ) * cmd->length );
-    memcpy( buff, cmd, cmd->length );
+    Message send_cmd = _createSendCmd( cmd );
+    memcpy( buff, &send_cmd, cmd->length );
     return buff;
 }
 
@@ -183,7 +196,8 @@ char* createPutRequestCmd( Message* cmd, char* file_name )
     cmd->length = sizeof( Message ) + strlen( file_name ) + 1;
 
     char* buff = malloc( sizeof( char ) * cmd->length );
-    memcpy( buff, cmd, sizeof( Message ) );
+    Message send_cmd = _createSendCmd( cmd );
+    memcpy( buff, &send_cmd, sizeof( Message ) );
     memcpy( buff + sizeof( Message ), file_name, strlen( file_name ) + 1 );
     return buff;
 }
@@ -195,7 +209,8 @@ char* createPutReplyCmd( Message* cmd )
     cmd->length = sizeof( Message );
 
     char* buff = malloc( sizeof( char ) * cmd->length );
-    memcpy( buff, cmd, cmd->length );
+    Message send_cmd = _createSendCmd( cmd );
+    memcpy( buff, &send_cmd, cmd->length );
     return buff;
 }
 
@@ -221,7 +236,8 @@ char* createFileDataCmd( Message* cmd, char* file_name )
 
     cmd->length = cmd->length + f_size;
     char* buff = malloc( sizeof( char ) * cmd->length + 1 );
-    memcpy( buff, cmd, sizeof( Message ) );
+    Message send_cmd = _createSendCmd( cmd );
+    memcpy( buff, &send_cmd, sizeof( Message ) );
     fread( buff + sizeof( Message ), f_size, 1, fp );
 
     fclose( fp );
@@ -236,6 +252,7 @@ int parseCmd ( char* buff, int len, Message* cmd )
         return 1;
     }
     memcpy( cmd, buff, sizeof( Message ) );
+    cmd->length = ntohl( cmd->length );
     printCmd( cmd );
     if ( cmd->protocol[0] != 'm'
             || cmd->protocol[1] != 'y'
