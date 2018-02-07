@@ -1,10 +1,17 @@
 CC = gcc
 CFLAGS = -O2
 ifeq ($(MODE),rd)
-	CFLAGS :=$(filter-out -O2,$(CFLAGS))
+    CFLAGS :=$(filter-out -O2,$(CFLAGS))
     CFLAGS += -g3 -gdwarf-4 -ggdb3 
 endif
 LDFLAGS = -lpthread
+
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), SunOS)
+    CFLAGS += -m64
+    LDFLAGS += -lnsl -lsocket -lresolv -m64
+endif
 
 all: myftpclient myftpserver myftp.o myftpclient.o myftpserver.o
 
